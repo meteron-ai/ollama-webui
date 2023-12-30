@@ -153,6 +153,7 @@
 		const res = await generateChatCompletion(
 			$settings?.API_BASE_URL ?? OLLAMA_API_BASE_URL,
 			localStorage.token,
+			$user.email,
 			{
 				model: model,
 				messages: [
@@ -581,6 +582,7 @@
 			const title = await generateTitle(
 				$settings?.API_BASE_URL ?? OLLAMA_API_BASE_URL,
 				localStorage.token,
+				$user.email,
 				selectedModels[0],
 				userPrompt
 			);

@@ -7,6 +7,10 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 import time
 import uuid
+import os
+
+import requests
+import json
 
 from apps.web.models.auths import (
     SigninForm,
@@ -104,12 +108,15 @@ async def signin(form_data: SigninForm):
 # SignUp
 ############################
 
+# Allows users to register straight away without admin approval
+initial_role = os.environ.get("INITIAL_ROLE", "user")
+initial_credits = os.environ.get("INITIAL_CREDITS", 5)
 
 @router.post("/signup", response_model=SigninResponse)
 async def signup(form_data: SignupForm):
     if not Users.get_user_by_email(form_data.email.lower()):
         try:
-            role = "admin" if Users.get_num_users() == 0 else "pending"
+            role = "admin" if Users.get_num_users() == 0 else initial_role
             hashed = get_password_hash(form_data.password)
             user = Auths.insert_new_auth(
                 form_data.email.lower(), hashed, form_data.name, role
@@ -117,7 +124,18 @@ async def signup(form_data: SignupForm):
 
             if user:
                 token = create_token(data={"email": user.email})
-                # response.set_cookie(key='token', value=token, httponly=True)
+                
+                print(f"user {user.email} created")
+                # Create user in Meteron and top them up with initial credits
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + os.environ["METERON_API_KEY"]
+                }
+                requests.put("https://app.meteron.ai/api/credits", headers=headers, data=json.dumps({
+                    "user": user.email,
+                    "amount": initial_credits
+                }))
+                                
 
                 return {
                     "token": token,

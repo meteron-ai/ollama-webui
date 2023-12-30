@@ -18,6 +18,9 @@
 	import Navbar from '$lib/components/layout/Navbar.svelte';
 	import { createNewChat, getChatById, getChatList, updateChatById } from '$lib/apis/chats';
 
+	import { credits } from '$lib/stores';
+	import { getUserCredits } from '$lib/apis/credits';
+
 	let loaded = false;
 	let stopResponseFlag = false;
 	let autoScroll = true;
@@ -180,6 +183,7 @@
 		const res = await generateChatCompletion(
 			$settings?.API_BASE_URL ?? OLLAMA_API_BASE_URL,
 			localStorage.token,
+			$user.email,
 			{
 				model: model,
 				messages: [
@@ -302,7 +306,7 @@
 					messages: messages,
 					history: history
 				});
-				await chats.set(await getChatList(localStorage.token));
+				await chats.set(await getChatList(localStorage.token));				
 			}
 		} else {
 			if (res !== null) {
@@ -337,6 +341,9 @@
 			window.history.replaceState(history.state, '', `/c/${_chatId}`);
 			await generateChatTitle(_chatId, userPrompt);
 		}
+
+		// Refresh credits
+		await credits.set(await getUserCredits(localStorage.token));
 	};
 
 	const sendPromptOpenAI = async (model, userPrompt, parentId, _chatId) => {
@@ -608,6 +615,7 @@
 			const title = await generateTitle(
 				$settings?.API_BASE_URL ?? OLLAMA_API_BASE_URL,
 				localStorage.token,
+				$user.email,
 				selectedModels[0],
 				userPrompt
 			);
